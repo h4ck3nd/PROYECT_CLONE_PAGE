@@ -22,6 +22,8 @@ ClonePagesWeb/
 
 ├── pom.xml
 
+REALMENTE SE GUARDAN LOS SITIOS EN (C:\Users\<USER>\eclipse-workspace\.metadata\.plugins\org.eclipse.wst.server.core\tmp0\wtpwebapps\<NAME_PROYECT>\sites)
+
 ## 📦 Dependencias Maven
 
 - `jsoup` - Parseo del HTML
