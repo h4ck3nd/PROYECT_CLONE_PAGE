@@ -5,13 +5,21 @@ Este proyecto usa el stack Java EE (Servlets) con Maven en Eclipse IDE y está p
 ## 📁 Estructura del Proyecto
 
 ClonePagesWeb/
+
 ├── src/
+
 │ └── controller/
+
 │ └── CloneServlet.java
+
 ├── webapp/
+
 │ ├── index.jsp
+
 │ ├── sitios.jsp
+
 │ └── sites/ ← Carpeta donde se clonan los sitios
+
 ├── pom.xml
 
 ## 📦 Dependencias Maven
