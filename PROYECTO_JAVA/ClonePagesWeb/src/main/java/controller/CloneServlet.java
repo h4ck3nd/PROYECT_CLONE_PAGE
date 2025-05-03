@@ -29,20 +29,20 @@ public class CloneServlet extends HttpServlet {
         String nombre = request.getParameter("nombre");
 
         if (url == null || url.isEmpty() || nombre == null || nombre.isEmpty()) {
-            response.getWriter().write("URL o nombre de carpeta no proporcionado.");
+            response.setContentType("text/html;charset=UTF-8");
+            response.getWriter().write("<html><body><h2>Error: URL o nombre no proporcionado.</h2><a href='index.jsp'>Volver</a></body></html>");
             return;
         }
 
-        // Directorio destino: /webapp/sites/[nombre]
+        long startTime = System.currentTimeMillis();
+
         String sitesBasePath = getServletContext().getRealPath("/sites/");
         File outputFolder = new File(sitesBasePath, nombre);
         if (!outputFolder.exists()) outputFolder.mkdirs();
 
-        // Obtener y procesar el HTML
         String htmlContent = fetchHtmlContent(url);
         Document doc = Jsoup.parse(htmlContent, url);
 
-        // Corregir rutas relativas
         Elements elements = doc.select("[src], [href]");
         for (Element el : elements) {
             String attr = el.hasAttr("href") ? "href" : "src";
@@ -54,11 +54,9 @@ public class CloneServlet extends HttpServlet {
             }
         }
 
-        // Guardar index.html
         File indexFile = new File(outputFolder, "index.html");
         FileUtils.writeStringToFile(indexFile, doc.html(), "UTF-8");
 
-        // Descargar recursos
         List<String> resources = getResources(doc);
         for (String resourceUrl : resources) {
             try {
@@ -73,16 +71,52 @@ public class CloneServlet extends HttpServlet {
             }
         }
 
-        // Crear ZIP para descargar
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (ZipArchiveOutputStream zipOutput = new ZipArchiveOutputStream(baos)) {
             zipFolder(outputFolder, nombre, zipOutput);
             zipOutput.finish();
         }
 
-        response.setContentType("application/zip");
-        response.setHeader("Content-Disposition", "attachment; filename=\"" + nombre + ".zip\"");
-        response.getOutputStream().write(baos.toByteArray());
+        // Guardar el ZIP en disco para el DownloadServlet
+        File zipFile = new File(sitesBasePath, nombre + ".zip");
+        FileUtils.writeByteArrayToFile(zipFile, baos.toByteArray());
+
+        long endTime = System.currentTimeMillis();
+        long seconds = Math.max(1, (endTime - startTime) / 1000); // mínimo 1 segundo para evitar división por cero
+
+        // Respuesta HTML con barra de progreso
+        response.setContentType("text/html;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        out.println("<html><head><title>Clonando...</title>");
+        out.println("<style>");
+        out.println("body{text-align:center;font-family:sans-serif;}");
+        out.println(".bar{width:60%;margin:auto;background:#ccc;border-radius:10px;overflow:hidden;height:30px;}");
+        out.println(".fill{width:0;height:100%;background:#4caf50;transition:width 1s;}");
+        out.println("</style>");
+        out.println("</head><body>");
+        out.println("<h2>🛠 Clonando y preparando tu descarga...</h2>");
+        out.println("<img src='https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExenBtNzZzZ2dtc3Zqem9yMXRhbnZlMHhkZGF4OHY2dXk4NjdjajN4ZCZlcD12MV8zYXRrNXVrZ2V0ZzRxMjdkZWhnOHF2aXAyZ2M2eQ/g0lMZVfKt4wvm/giphy.gif' width='150'><br><br>");
+        out.println("<div class='bar'><div class='fill' id='fill'></div></div>");
+        out.println("<p id='text'></p>");
+        out.println("<script>");
+        out.println("let secs = " + seconds + ";");
+        out.println("let i = 0;");
+        out.println("let bar = document.getElementById('fill');");
+        out.println("let txt = document.getElementById('text');");
+        out.println("let interval = setInterval(() => {");
+        out.println("  i++;");
+        out.println("  bar.style.width = (i * 100 / secs) + '%';");
+        out.println("  txt.innerText = `Esperando... ${secs - i} segundos restantes`;");
+        out.println("  if (i >= secs) {");
+        out.println("    clearInterval(interval);");
+        out.println("    txt.innerText = '¡Hecho! Iniciando descarga...';");
+        out.println("    window.location.href = 'download?file=" + nombre + "';");
+        out.println("  }");
+        out.println("}, 1000);");
+        out.println("</script>");
+        out.println("<br><a href='sitios.jsp'><button style='margin-top:20px;padding:10px 20px;font-size:16px;'>Ver sitios clonados</button></a>");
+        out.println("</body></html>");
+
     }
 
     private String fetchHtmlContent(String url) throws IOException {
@@ -103,11 +137,9 @@ public class CloneServlet extends HttpServlet {
 
     private List<String> getResources(Document doc) {
         List<String> resources = new ArrayList<>();
-
         doc.select("img[src]").forEach(e -> resources.add(e.absUrl("src")));
         doc.select("link[rel=stylesheet][href]").forEach(e -> resources.add(e.absUrl("href")));
         doc.select("script[src]").forEach(e -> resources.add(e.absUrl("src")));
-
         return resources;
     }
 
