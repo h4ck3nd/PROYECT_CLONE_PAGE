@@ -110,6 +110,7 @@
         <form action="clone" method="post">
             <input type="text" name="url" placeholder="URL de la página" required><br>
             <input type="text" name="nombre" placeholder="Nombre para la carpeta" required><br>
+            <input type="text" name="authCookie" placeholder="Cookie (opcional: PHPSESSID=...)" /><br>
             <button type="submit">Clonar y Descargar</button>
         </form>
 
